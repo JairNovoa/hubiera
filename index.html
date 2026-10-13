@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hubiera 💌</title>
+<meta name="theme-color" content="#0a0714">
+<style>
+  :root {
+    --ink: #0a0714;
+    --paper: #fff6ea;
+    --rose: #ff5fa2;
+    --gold: #ffc857;
+    --cyan: #5fe3ff;
+    --violet: #9b7bff;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background:
+      radial-gradient(120% 80% at 50% 0%, #1d1238 0%, transparent 60%),
+      radial-gradient(100% 70% at 50% 110%, #2a0f2e 0%, transparent 60%),
+      var(--ink);
+    color: var(--paper);
+    font-family: var(--serif);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Escenario ---------- */
+  #stage { position: fixed; inset: 0; z-index: 1; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem;
+    padding: calc(env(safe-area-inset-top, 0px) + 3.4rem) 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem);
+    opacity: 0; visibility: hidden;
+    transition: opacity 2.4s ease-in-out, visibility 0s linear 2.4s;
+  }
+  .slide.active, .slide.leaving { visibility: visible; }
+  .slide.active { opacity: 1; transition: opacity 2.4s ease-in-out, visibility 0s; }
+
+  .photo-wrap {
+    flex: 1 1 0; min-height: 0; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-wrap img {
+    display: block;
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    box-shadow:
+      0 0 36px hsl(var(--h) 95% 60% / .45),
+      0 0 110px hsl(var(--h) 95% 60% / .22);
+  }
+  .slide.active .photo-wrap img,
+  .slide.leaving .photo-wrap img { animation: drift 16s linear forwards; }
+  @keyframes drift { from { transform: scale(1); } to { transform: scale(1.045); } }
+
+  .caption {
+    width: 100%; max-width: 44rem;
+    padding: 1.05rem 1.35rem;
+    text-align: center;
+    background: rgba(12, 8, 24, .68);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 16px;
+    opacity: 0;
+    transition: opacity 1.6s ease-in-out;
+  }
+  .slide.active .caption { opacity: 1; transition-delay: .9s; }
+  .caption p {
+    font-size: clamp(1rem, 2.2vw + .45rem, 1.5rem);
+    line-height: 1.5;
+    letter-spacing: .01em;
+    color: var(--paper);
+    text-shadow: 0 1px 14px rgba(0, 0, 0, .85);
+  }
+
+  .restart {
+    margin-top: 1rem;
+    opacity: 0; pointer-events: none;
+    transition: opacity 2s ease-in-out 4s;
+  }
+  .slide.active .restart { opacity: 1; pointer-events: auto; }
+
+  /* ---------- Botones ---------- */
+  button {
+    font-family: var(--serif);
+    color: var(--paper);
+    cursor: pointer;
+    border: 0;
+    background: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  .pill {
+    font-size: 1.05rem;
+    padding: .7rem 1.5rem;
+    border-radius: 999px;
+    background: rgba(12, 8, 24, .72);
+    border: 1px solid rgba(255, 255, 255, .35);
+    transition: background .3s, border-color .3s, transform .2s;
+  }
+  .pill:hover { background: rgba(40, 20, 70, .85); border-color: var(--gold); }
+  .pill:active { transform: scale(.97); }
+
+  /* Pantalla inicial */
+  #intro {
+    position: fixed; inset: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(90% 70% at 50% 45%, rgba(40, 18, 70, .55), rgba(10, 7, 20, .94));
+    transition: opacity 2s ease-in-out, visibility 0s linear 2s;
+  }
+  #intro.gone { opacity: 0; visibility: hidden; pointer-events: none; }
+  #startBtn {
+    font-size: clamp(1.5rem, 5vw, 2.2rem);
+    padding: 1rem 2.4rem;
+    border-radius: 999px;
+    background:
+      linear-gradient(var(--ink), var(--ink)) padding-box,
+      linear-gradient(120deg, var(--rose), var(--gold), var(--cyan), var(--violet), var(--rose)) border-box;
+    border: 2px solid transparent;
+    box-shadow: 0 0 30px rgba(255, 95, 162, .35), 0 0 80px rgba(155, 123, 255, .25);
+    animation: breathe 3.6s ease-in-out infinite;
+    transition: transform .25s;
+  }
+  #startBtn:hover { transform: scale(1.04); }
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 26px rgba(255, 95, 162, .30), 0 0 70px rgba(155, 123, 255, .20); }
+    50%      { box-shadow: 0 0 44px rgba(255, 200, 87, .45), 0 0 110px rgba(95, 227, 255, .30); }
+  }
+
+  /* Controles */
+  #pauseBtn {
+    position: fixed; z-index: 4;
+    top: calc(env(safe-area-inset-top, 0px) + .8rem);
+    right: calc(env(safe-area-inset-right, 0px) + .8rem);
+    font-size: .95rem; padding: .5rem 1rem;
+    opacity: 0; visibility: hidden;
+    transition: opacity 1s, background .3s, border-color .3s, transform .2s;
+  }
+  body.started #pauseBtn { opacity: 1; visibility: visible; }
+
+  #progress {
+    position: fixed; z-index: 4; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, var(--rose), var(--gold), var(--cyan), var(--violet));
+    transform-origin: left center; transform: scaleX(0);
+    opacity: .85;
+  }
+
+  /* Destellos */
+  #fx { position: fixed; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }
+
+  body.paused .slide.active .photo-wrap img,
+  body.paused .slide.leaving .photo-wrap img,
+  body.paused #startBtn { animation-play-state: paused; }
+
+  /* Teléfonos en horizontal: foto a la izquierda, leyenda a la derecha */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .slide {
+      flex-direction: row; gap: 1rem;
+      padding: calc(env(safe-area-inset-top, 0px) + 2.8rem) calc(env(safe-area-inset-right, 0px) + 1rem) .8rem calc(env(safe-area-inset-left, 0px) + 1rem);
+    }
+    .photo-wrap { height: 100%; }
+    .caption { width: 48%; max-width: none; padding: .8rem 1rem; max-height: 100%; overflow: auto; }
+    .caption p { font-size: clamp(.9rem, 2.4vw, 1.2rem); line-height: 1.42; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide.active .photo-wrap img, .slide.leaving .photo-wrap img { animation: none; }
+    #startBtn { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<main id="stage" aria-live="polite"></main>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<button id="pauseBtn" class="pill" type="button" aria-label="Pausar presentación">⏸ Pausar</button>
+
+<div id="intro">
+  <button id="startBtn" type="button">Hubiera 💌</button>
+</div>
+
+<audio id="music" src="audio/brillas.mp3" preload="auto"></audio>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Contenido ---------- */
+  const SLIDE_MS = 13000;           // 13 segundos por imagen
+  const SLIDES = [
+    ['hubiera1.jpg',  'Hubiera sido genial vivir a tu lado, descubrir tus días buenos y acompañarte en los malos, hacer de lo cotidiano algo extraordinario solo por estar juntos.'],
+    ['hubiera2.jpg',  'Hubiera sido genial compartir contigo los amaneceres, las conversaciones interminables y esos silencios que no necesitan explicaciones cuando estás con tu persona favorita.'],
+    ['hubiera3.jpg',  'Hubiera estado genial estar en todas tus versiones: la que sonríe sin motivo, la que se pierde en sus pensamientos, la que necesita que alguien se quede un ratito más...'],
+    ['hubiera4.jpg',  'Hubiera querido ser parte de tus pequeños momentos, de esos que parecen insignificantes mientras suceden, pero que terminan convirtiéndose en los recuerdos más bonitos.'],
+    ['hubiera5.jpg',  'Imagino las canciones que habríamos hecho nuestras, los lugares a los que habríamos regresado y las bromas que solo nosotros entenderíamos.'],
+    ['hubiera6.jpg',  'Quizá habríamos seguido discutiendo por tonterías, habríamos tenido días difíciles y no siempre sabríamos qué decir. Pero también habríamos tenido la oportunidad de aprender a encontrarnos de nuevo.'],
+    ['hubiera7.jpg',  'Me habría encantado si nuestros caminos podían cambiar de dirección sin dejar de caminar juntos.'],
+    ['hubiera8.jpg',  'A veces pienso en todas las fotografías que nunca tomamos, en los abrazos que quedaron pendientes y en las palabras que quizá habrían significado tanto si hubieran llegado a tiempo.'],
+    ['hubiera9.jpg',  'Qué extraño es extrañar incluso aquello que nunca sucedió. Sentir nostalgia por una historia que apenas alcanzamos a imaginar y que en algún lugar de nosotros parecía tan posible.'],
+    ['hubiera10.jpg', 'Quizá nunca sabremos cómo habría sido despertar el resto de mi vida a tu lado, compartir los días comunes o descubrir que, después de todo, la felicidad también podía ser algo tan sencillo como estar juntos.'],
+    ['hubiera11.jpg', 'Si alguna vez te preguntaste qué habría pasado si las cosas hubieran sido diferentes, quiero que sepas que, al menos en mi imaginación, hubo un lugar donde coincidimos y nos elegimos.'],
+    ['hubiera12.jpg', 'A veces no existe un culpable; solo posibilidades uno mismo desaprovecha.'],
+    ['hubiera13.jpg', 'Hubiera sido genial darte la oportunidad de conocer todo lo que alguna vez imaginé compartir contigo, sin prisas, sin miedo y sin tener que preguntarnos qué habría pasado.'],
+    ['hubiera14.jpg', 'Pero la vida no siempre nos permite regresar a los momentos en los que todavía podíamos elegir. Hay puertas que quizá dejamos entreabiertas demasiado tiempo, hasta que ya no sabemos si alguien sigue del otro lado.'],
+    ['hubiera15.jpg', 'Hubiera sido genial vivir a tu lado. Y aunque todavía puedo imaginarlo, empiezo a comprender que imaginar una vida juntos no significa que todavía podamos construirla.'],
+    ['hubiera16.jpg', 'Tal vez en otra circunstancia, en otro momento, con menos dudas y más valor, habríamos descubierto lo que significaba estar juntos.'],
+    ['hubiera17.jpg', 'O quizá no. Quizá la vida habría sido distinta de lo que imagino. Pero me habría gustado tener la oportunidad de averiguarlo contigo.'],
+    ['hubiera18.jpg', 'Porque hay personas con las que uno no solo imagina momentos bonitos; también imagina domingos cualquiera, días difíciles, planes improvisados y una vida que no necesita ser perfecta para ser especial.'],
+    ['hubiera19.jpg', 'Si alguna vez recuerdas lo que pudo haber sido, ojalá puedas hacerlo sin tristeza. Yo quiero recordar la posibilidad con cariño, aunque nunca haya llegado a convertirse en realidad.'],
+    ['hubiera20.jpg', 'Hubiera sido genial vivir a tu lado. Pero lo más probable es que ese futuro que alguna vez imaginé contigo ya no nos esté esperando.']
+  ];
+  const LAST = SLIDES.length - 1;
+  const HUES = [330, 45, 190, 265, 20, 150];
+
+  /* ---------- Elementos ---------- */
+  const stage    = document.getElementById('stage');
+  const intro    = document.getElementById('intro');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const progress = document.getElementById('progress');
+  const music    = document.getElementById('music');
+  const cv       = document.getElementById('fx');
+  const ctx      = cv.getContext('2d');
+
+  let restartBtn = null;
+  const slides = SLIDES.map(([file, text], i) => {
+    const s = document.createElement('section');
+    s.className = 'slide';
+    s.setAttribute('aria-hidden', 'true');
+    s.style.setProperty('--h', HUES[i % HUES.length]);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-wrap';
+    const img = document.createElement('img');
+    img.src = 'imagenes/' + file;
+    img.alt = '';
+    img.decoding = 'async';
+    wrap.appendChild(img);
+
+    const cap = document.createElement('div');
+    cap.className = 'caption';
+    const p = document.createElement('p');
+    p.textContent = text;
+    cap.appendChild(p);
+
+    if (i === LAST) {
+      restartBtn = document.createElement('button');
+      restartBtn.type = 'button';
+      restartBtn.className = 'pill restart';
+      restartBtn.textContent = '↻ Volver a empezar';
+      cap.appendChild(restartBtn);
+    }
+
+    s.append(wrap, cap);
+    stage.appendChild(s);
+    return s;
+  });
+
+  /* ---------- Destellos de colores ---------- */
+  let W = 0, H = 0;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[(Math.random() * arr.length) | 0];
+  let sparks = [];
+
+  function addSpark(opts) {
+    if (sparks.length > 420) return;
+    const base = Math.min(W, H);
+    const star = Math.random() < 0.45;
+    sparks.push({
+      x: rand(0, W), y: rand(0, H),
+      r: star ? rand(.006, .016) * base + 2 : rand(.02, .075) * base,
+      hue: pick(HUES) + rand(-12, 12),
+      star,
+      delay: opts.delay || 0,
+      age: 0,
+      life: opts.life,
+      vx: rand(-.010, .010), vy: rand(-.022, -.004),
+      peak: star ? rand(.55, .95) : rand(.18, .42) * opts.gain,
+      seed: Math.random() * 6.28
+    });
+  }
+  function burst(n) {
+    for (let i = 0; i < n; i++) addSpark({ delay: rand(0, 1800), life: rand(3200, 6200), gain: 1 });
+  }
+
+  let ambientClock = 0;
+  function stepFx(dt) {
+    ambientClock += dt;
+    if (ambientClock > 380) { ambientClock = 0; addSpark({ life: rand(3500, 6000), gain: .6 }); }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of sparks) {
+      if (p.delay > 0) { p.delay -= dt; continue; }
+      p.age += dt;
+      const k = p.age / p.life;
+      if (k >= 1) { p.dead = true; continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      let a = p.peak * Math.pow(Math.sin(Math.PI * k), 1.4);   // aparece y se degrada poco a poco
+      if (p.star) a *= .7 + .3 * Math.sin(p.age * .008 + p.seed);
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0,   `hsla(${p.hue}, 100%, ${p.star ? 85 : 70}%, ${a})`);
+      g.addColorStop(.35, `hsla(${p.hue}, 100%, 62%, ${a * .5})`);
+      g.addColorStop(1,   `hsla(${p.hue}, 100%, 55%, 0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    sparks = sparks.filter(p => !p.dead);
+  }
+
+  /* ---------- Presentación ---------- */
+  let idx = -1, elapsed = 0, running = false, paused = false;
+
+  function goTo(i) {
+    const prev = slides[idx];
+    if (prev && idx !== i) {
+      prev.classList.remove('active');
+      prev.classList.add('leaving');
+      prev.setAttribute('aria-hidden', 'true');
+      setTimeout(() => prev.classList.remove('leaving'), 2800);
+    }
+    idx = i; elapsed = 0;
+    const cur = slides[i];
+    cur.classList.remove('leaving');
+    cur.classList.add('active');
+    cur.setAttribute('aria-hidden', 'false');
+    progress.style.transform = 'scaleX(0)';
+    burst(180);
+  }
+
+  function setPaused(v) {
+    paused = v;
+    document.body.classList.toggle('paused', v);
+    pauseBtn.textContent = v ? '▶ Seguir' : '⏸ Pausar';
+    pauseBtn.setAttribute('aria-label', v ? 'Seguir presentación' : 'Pausar presentación');
+    if (v) music.pause(); else music.play().catch(() => {});
+  }
+
+  function start() {
+    running = true;
+    document.body.classList.add('started');
+    intro.classList.add('gone');
+    music.currentTime = 0;
+    music.play().catch(() => {});
+    goTo(0);
+  }
+
+  function restart() {
+    paused = false;
+    document.body.classList.remove('paused');
+    pauseBtn.textContent = '⏸ Pausar';
+    music.currentTime = 0;
+    music.play().catch(() => {});
+    goTo(0);
+  }
+
+  startBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', () => setPaused(!paused));
+  restartBtn.addEventListener('click', restart);
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && running && e.target === document.body) {
+      e.preventDefault(); setPaused(!paused);
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && running && !paused) setPaused(true);
+  });
+
+  /* ---------- Reloj principal ---------- */
+  let lastT = performance.now();
+  function frame(now) {
+    const dt = Math.min(now - lastT, 60);
+    lastT = now;
+    if (!paused) {
+      stepFx(dt);
+      if (running) {
+        elapsed += dt;
+        progress.style.transform = 'scaleX(' + Math.min(elapsed / SLIDE_MS, 1) + ')';
+        if (elapsed >= SLIDE_MS && idx < LAST) goTo(idx + 1);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
